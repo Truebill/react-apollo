@@ -358,7 +358,7 @@ export default class Query<TData = any, TVariables = OperationVariables> extends
     Object.assign(data, observableQueryFields(this.queryObservable!));
     // fetch the current result (if any) from the store
     const currentResult = this.queryObservable!.currentResult();
-    const { loading, networkStatus, errors } = currentResult;
+    const { loading, partial, networkStatus, errors } = currentResult;
     let { error } = currentResult;
     // until a set naming convention for networkError and graphQLErrors is decided upon, we map errors (graphQLErrors) to the error props
     if (errors && errors.length > 0) {
@@ -377,6 +377,17 @@ export default class Query<TData = any, TVariables = OperationVariables> extends
         });
       }
     } else {
+      const { fetchPolicy } = this.queryObservable!.options;
+      if (
+        Object.keys(currentResult.data).length === 0 &&
+        partial &&
+        fetchPolicy !== 'cache-only'
+      ) {
+        Object.assign(data, { loading: true });
+        data.refetch();
+        return data;
+      }
+
       Object.assign(data.data, currentResult.data);
       this.previousData = currentResult.data;
     }
